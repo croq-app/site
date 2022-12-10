@@ -32,10 +32,10 @@ init =
 
 view : Model -> List Datum -> Html Msg
 view model data =
-    div [ class "w-96 h-64 mt-8 mb-12 mx-auto" ]
+    div [ class "w-96 h-48 mt-8 mb-12 mx-auto" ]
         [ C.chart
-            [ CA.height 200
-            , CA.width 300
+            [ CA.height 240
+            , CA.width 480
             , CE.onMouseMove OnHover (CE.getNearest CI.bins)
             , CE.onMouseLeave (OnHover [])
             ]
@@ -48,7 +48,7 @@ view model data =
                 ]
             , C.bars []
                 [ C.bar Tuple.second
-                    [ CA.gradient [ "lime", CA.green ]
+                    [ CA.gradient [ "#529B03", CA.green ]
                     , CA.roundBottom 0.5
                     , CA.roundTop 0.5
                     ]

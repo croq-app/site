@@ -7,14 +7,14 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Route
-import Table
+import Table exposing (defaultCustomizations)
 import Types exposing (..)
 import Ui.App
 import Ui.BoulderMap as Map
 import Ui.Color
 import Ui.Components as Ui
 import Ui.Histogram as Histogram
-import Ui.Tab as Tab
+import Ui.Tab as Tab exposing (Msg(..))
 
 
 type alias Model =
@@ -54,7 +54,7 @@ entry id =
                 [ ( "fax", { name = "Bloco do Fax", shortName = "Fax" } )
                 , ( "block-2", { name = "Bloco 2", shortName = "Bloco 2" } )
                 ]
-      , selectedBlock = "fax"
+      , selectedBlock = "*"
       , access = "De carro"
       , tab = Tab.init tabConfig
       , map = Map.init
@@ -93,7 +93,7 @@ view _ m =
     Ui.App.appShell <|
         Ui.container
             [ Ui.breadcrumbs [ ( "br", "BR" ), ( "foo", "Cocalzinho" ) ]
-            , h1 [] [ text "Setor Moco" ]
+            , Ui.title "Setor Moco"
             , Ui.tags [ "Facil acesso", "Democratico" ]
             , Tab.view tabConfig m.tab m
             ]
@@ -103,15 +103,20 @@ viewBoulders : Model -> Html Msg
 viewBoulders m =
     let
         blockItem ( id, { name } ) =
-            li [] [ button [ class "btn", onClick (OnBlockSelect id) ] [ text name ] ]
+            option [ value id ] [ text name ]
+
+        blockOptions =
+            option [ disabled True, selected True ] [ text "Selecione o bloco" ]
+                :: option [ value "*" ] [ text "Todos" ]
+                :: List.map blockItem (Dict.toList m.blockInfo)
 
         blockLink =
             Route.boulderDetail (elemId m.id m.selectedBlock)
     in
     div []
         [ Html.map OnMapMsg (Map.view m.map)
-        , ul [ class "list-disc" ] (List.map blockItem (Dict.toList m.blockInfo))
-        , h1 [] [ text "Bloco do fax" ]
+        , select [ onInput OnBlockSelect, class "select select-bordered w-full mb-4" ] blockOptions
+        , Ui.title "Bloco do fax"
         , Ui.cardList a
             Ui.Color.Primary
             (List.map
@@ -120,7 +125,7 @@ viewBoulders m =
                 )
                 (getBoulders m)
             )
-        , a [ class "btn", href blockLink ] [ text "Ir para bloco" ]
+        , a [ class "btn w-full btn-primary my-4", href blockLink ] [ text "Ir para bloco" ]
         ]
 
 
@@ -141,9 +146,9 @@ viewInfo m =
             ]
     in
     Ui.sections
-        [ ( "Distribuição", [ Html.map OnHistogramMsg (Histogram.view m.histogram data) ] )
-        , ( "Descrição", [ text m.description ] )
-        , ( "Tabela", [ Table.view tableConfig m.table m.boulderInfo ] )
+        [ ( "Descrição do bloco", [ text m.description ] )
+        , ( "Distribuição de graus", [ Html.map OnHistogramMsg (Histogram.view m.histogram data) ] )
+        , ( "Lista de problemas", [ Table.view tableConfig m.table m.boulderInfo ] )
         ]
 
 
@@ -166,7 +171,11 @@ tabConfig =
 
 tableConfig : Table.Config BoulderInfo Msg
 tableConfig =
-    Table.config
+    let
+        c =
+            defaultCustomizations
+    in
+    Table.customConfig
         { toId = .slug
         , toMsg = OnTableUpdate
         , columns =
@@ -174,12 +183,13 @@ tableConfig =
             , Table.stringColumn "Bloco" .block
             , Table.stringColumn "Grau" .grade
             ]
+        , customizations = { c | tableAttrs = [ class "table w-full" ] }
         }
 
 
 getBoulders : Model -> List BoulderInfo
 getBoulders m =
-    if m.selectedBlock == "" then
+    if m.selectedBlock == "*" then
         m.boulderInfo
 
     else

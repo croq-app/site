@@ -19,7 +19,7 @@ type alias Msg =
 
 view : Model -> Html msg
 view m =
-    div [] [ text "TODO: Topdown view of boulders in a sector" ]
+    div [ class "bg-gradient-to-r from-cyan-500 to-blue-500 my-4 h-48 rounded-md" ] [ text "TODO: Topdown view of boulders in a sector" ]
 
 
 update : Msg -> Model -> Model

@@ -13,21 +13,21 @@ type Model
     = NotImpl
 
 
-type Msg
-    = NoOp
+type alias Msg =
+    ()
 
 
 entry : Cfg.Model -> ( Model, Cmd a )
-entry cfg =
+entry _ =
     ( NotImpl, Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg m =
+update _ m =
     ( m, Cmd.none )
 
 
-view m =
+view _ =
     Ui.App.appShell <|
         div []
             [ div
@@ -38,19 +38,27 @@ view m =
                     [ class "hero-overlay bg-opacity-30" ]
                     []
                 , div
-                    [ class "hero-content text-center text-neutral-content"
+                    [ class "hero-content text-center text-white"
                     ]
                     [ div
                         [ class "max-w-md" ]
-                        [ h1 [ class "mb-5 text-5xl font-bold" ] [ text "Hello there" ]
+                        [ h1 [ class "mb-5 text-5xl font-bold" ] [ text "faaala, lek!" ]
                         , p [ class "mb-5" ]
                             [ text "Provident cupiditate voluptatem et in. Quaerat fugiat ut assumenda excepturi exercitationem quasi. In deleniti eaque aut repudiandae et a id nisi." ]
-                        , a
-                            [ class "btn btn-primary"
-                            , class "hover:ring"
-                            , href (Route.region "br/cocal")
+                        , div [ class "btn-group" ]
+                            [ a
+                                [ class "btn btn-secondary"
+                                , class "hover:ring"
+                                , href (Route.region "br/belchi")
+                                ]
+                                [ text "Ir para Belchi" ]
+                            , a
+                                [ class "btn btn-primary"
+                                , class "hover:ring"
+                                , href (Route.region "br/cocal")
+                                ]
+                                [ text "Ir para Cocal" ]
                             ]
-                            [ text "Ir para cocal!" ]
                         ]
                     ]
                 ]

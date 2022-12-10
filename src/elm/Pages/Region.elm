@@ -114,7 +114,7 @@ view _ m =
                 [ Ui.breadcrumbs [ ( "/br", "BR" ) ]
                 , Ui.title "Mapa dos setores"
                 ]
-            , Map.view m.map
+            , div [ class "max-w-lg mx-auto" ] [ Map.view m.map ]
             , Ui.container [ Tab.view tabConfig m.tab m ]
             ]
 

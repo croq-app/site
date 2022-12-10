@@ -14,7 +14,7 @@ appShell content =
         , attribute "data-theme" "lemonade"
         ]
         [ header
-        , main_ [ style "margin-bottom" "4rem" ] [ content ]
+        , main_ [] [ content ]
         ]
 
 

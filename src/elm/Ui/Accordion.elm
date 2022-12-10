@@ -4,8 +4,8 @@ module Ui.Accordion exposing (..)
 -}
 
 import Html exposing (..)
-import Html.Attributes as Attr exposing (..)
-import Html.Events as Ev exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (..)
 import Ui.Color as Color
 import Ui.Components as Ui
 

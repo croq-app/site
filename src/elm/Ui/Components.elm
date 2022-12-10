@@ -94,7 +94,7 @@ breadcrumbs links =
 
 tag : String -> Html msg
 tag txt =
-    span [ class "badge badge-outline badge-primary" ] [ text <| "tag: " ++ txt ]
+    span [ class "badge badge-outline badge-primary" ] [ text txt ]
 
 
 tags : List String -> Html msg
@@ -104,7 +104,7 @@ tags xs =
 
 container : List (Html msg) -> Html msg
 container content =
-    div [ class "mx-4 my-2" ] content
+    div [ class "mx-auto px-4 my-2 max-w-lg" ] content
 
 
 title : String -> Html msg

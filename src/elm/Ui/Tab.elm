@@ -56,7 +56,7 @@ view cfg tab m =
                 |> Maybe.withDefault (\_ -> div [] [])
     in
     div []
-        [ div [ class "tabs my-4 text-lg font-bold w-100 flex justify-center" ] (List.indexedMap (viewTab cfg tab.index) tabNames)
+        [ div [ class "tabs my-4 w-full text-lg font-bold w-100 flex justify-center space-x-2" ] (List.indexedMap (viewTab cfg tab.index) tabNames)
         , viewFunction m
         ]
 
@@ -66,10 +66,10 @@ viewTab cfg select idx name =
     let
         tabClass =
             if select == idx then
-                " tab tab-bordered tab-active"
+                " tab flex-1 tab-bordered tab-active"
 
             else
-                "tab tab-bordered"
+                "tab flex-1 tab-bordered"
     in
     Html.map cfg.message <|
         a

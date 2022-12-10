@@ -15,22 +15,19 @@ import Ui.Components as Ui
 type alias Model =
     { id : ElemId
     , name : String
-    , carousel : Carousel.Model
     , accordion : Accordion.State
     , boulderInfo : List BoulderInfo
     }
 
 
 type Msg
-    = OnCarouselMsg Carousel.Msg
-    | OnAccordionUpdate Accordion.State
+    = OnAccordionUpdate Accordion.State
 
 
 entry : ElemId -> ( Model, Cmd a )
 entry id =
     ( { id = id
       , name = "Bloco do fax"
-      , carousel = Carousel.init
       , accordion = Accordion.init
       , boulderInfo =
             [ { name = "Boulder Foo", slug = "foo", grade = "V2", block = "fax" }
@@ -50,9 +47,6 @@ update msg _ m =
             ( m_, Cmd.none )
     in
     case msg of
-        OnCarouselMsg msg_ ->
-            return { m | carousel = Carousel.update msg_ m.carousel }
-
         OnAccordionUpdate state ->
             return { m | accordion = state }
 
@@ -65,9 +59,9 @@ view _ m =
     in
     Ui.App.appShell <|
         Ui.container
-            [ Ui.breadcrumbs [ ( "/br", "BR" ), ( "/br/cocalzinho", "Cocalzinho" ), ( "/br/cocal/b/casa-da-cobra/", "Casa da cobra" ) ]
+            [ Ui.breadcrumbs [ ( "/br", "BR" ), ( "/br/cocalzinho/b/sectors/", "Cocalzinho" ), ( "/br/cocal/b/sectors/casa-da-cobra/", "Casa da cobra" ) ]
             , Ui.title "Bloco do Fax"
-            , Html.map OnCarouselMsg (Carousel.view m.carousel)
+            , Carousel.view carouselConfig [ "foo", "bar", "baz" ]
             , Accordion.view accordionConfig m.accordion info
             ]
 
@@ -85,7 +79,12 @@ accordionConfig =
                         , dt [] [ text "Descrição:" ]
                         , dd [] [ text "Boulder description" ]
                         ]
-                    , a [ href (Route.boulderProblem (problemId m.id info.slug)), class "btn btn-primary" ] [ text "Ver detalhes" ]
+                    , a [ href (Route.boulderProblem (problemId m.id info.slug)), class "btn glass w-full btn-accent" ] [ text "Ver detalhes" ]
                     ]
         , title = \( _, info ) -> info.name ++ " (" ++ info.grade ++ ")"
         }
+
+
+carouselConfig : Carousel.Config String msg
+carouselConfig =
+    Carousel.config
