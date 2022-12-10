@@ -1,0 +1,8 @@
+.idea/
+.ipynb_checkpoints/
+.vscode/
+elm-stuff/
+repl-temp-*
+.sass-cache
+node_modules/
+dist/
