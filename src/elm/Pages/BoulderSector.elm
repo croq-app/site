@@ -19,6 +19,7 @@ import Ui.Tab as Tab exposing (Msg(..))
 
 type alias Model =
     { id : SectorId
+    , name : String
     , description : String
     , access : String
     , boulderInfo : List BoulderInfo
@@ -26,8 +27,8 @@ type alias Model =
     , selectedBlock : String
     , tab : Tab.Model
     , map : Map.Model
-    , histogram : Histogram.Model
     , table : Table.State
+    , histogram : Histogram.Model
     }
 
 
@@ -42,6 +43,7 @@ type Msg
 entry : SectorId -> ( Model, Cmd a )
 entry id =
     ( { id = id
+      , name = "Bloco do fax"
       , description = "Lorem Ipsum Est"
       , boulderInfo =
             [ { name = "Boulder Foo", slug = "foo", grade = "V2", block = "fax" }
@@ -116,7 +118,7 @@ viewBoulders m =
     div []
         [ Html.map OnMapMsg (Map.view m.map)
         , select [ onInput OnBlockSelect, class "select select-bordered w-full mb-4" ] blockOptions
-        , Ui.title "Bloco do fax"
+        , Ui.title m.name
         , Ui.cardList a
             Ui.Color.Primary
             (List.map
