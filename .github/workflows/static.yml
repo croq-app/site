@@ -27,6 +27,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      # - name: Add Elm support
+      #   uses: jorelali/setup-elm@v3
+      #   with:
+      #     elm-version: 0.19.1
+
       - name: Vite build
         uses: actions/setup-node@v3
         with:
@@ -34,6 +39,7 @@ jobs:
 
       - name: Build
         run: |
+          npm install -g elm
           npm install
           npx vite build
 
