@@ -35,7 +35,7 @@ jobs:
       #   with:
       #     elm-version: 0.19.1
 
-      - name: Vite build
+      - name: Npm install
         uses: actions/setup-node@v3
         with:
           node-version: 18.x
@@ -44,9 +44,9 @@ jobs:
         run: |
           npm install -g elm
           npm install
-          npx vite build
+          npx vite build --base /site/
 
-      - name: Copy pages
+      - name: Copy data and assets
         run: | 
           cp -r api dist/api
           cp -r static dist/static
