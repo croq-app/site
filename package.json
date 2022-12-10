@@ -1,5 +1,5 @@
 {
-  "name": "crocs",
+  "name": "croq.app",
   "version": "1.0.0",
   "description": "Your useful climbing companion",
   "scripts": {
@@ -10,14 +10,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/crocs/crocs.git"
+    "url": "git+https://github.com/croq-app/croq.git"
   },
   "author": "Fábio Macêdo Mendes",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/crocs/crocs/issues"
+    "url": "https://github.com/croq-app/croq/issues"
   },
-  "homepage": "https://github.com/crocs/crocs#readme",
+  "homepage": "https://github.com/croq-app/croq#readme",
   "dependencies": {
     "elix": "^15.0.1"
   },

@@ -1,5 +1,5 @@
-CROCS
-=====
+Croq.app
+========
 
 A climbing APP with useful information and topos about crags, boulders, and routes. The live website can be accessed from http://crocs.github.io/site/
 
