@@ -21,12 +21,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -40,10 +36,19 @@ jobs:
         run: |
           npm install
           npx vite build
+
+      - name: Copy pages
+        run: | 
           cp -r api dist/api
           cp -r static dist/static
-
-
+  
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    
+    steps:
       - name: Setup Pages
         uses: actions/configure-pages@v2
     
