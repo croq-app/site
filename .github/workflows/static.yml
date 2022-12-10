@@ -21,39 +21,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:  
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Vite build
-      uses: actions/setup-node@v3
-      with:
-        node-version: 18.x
-
-    - name: Build
-      run: |
-        npm install
-        npx vite build
-        cp -r api dist/api
-        cp -r static dist/static
-
-  # Single deploy job since we're just deploying
   deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
+      - name: Vite build
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+
+      - name: Build
+        run: |
+          npm install
+          npx vite build
+          cp -r api dist/api
+          cp -r static dist/static
+
+
       - name: Setup Pages
         uses: actions/configure-pages@v2
+    
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
           path: 'dist'
+    
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v1
