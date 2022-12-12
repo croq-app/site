@@ -6,7 +6,7 @@ import Util exposing (dbg1)
 
 
 type alias Model =
-    { navKey : Key }
+    { navKey : Key, api: String }
 
 
 type Msg
@@ -16,6 +16,7 @@ type Msg
 init : Key -> Model
 init key =
     { navKey = key
+    , api = "http://localhost:8001"
     }
 
 

@@ -5,7 +5,7 @@ import Browser.Navigation as Nav
 import Config as Cfg
 import Html exposing (Html, div, text)
 import Json.Encode exposing (Value)
-import Pages.BoulderDetail as BoulderDetail
+import Pages.BoulderFormation as BoulderFormation
 import Pages.BoulderProblem as BoulderProblem
 import Pages.BoulderSector as BoulderSector
 import Pages.GpsTool as GpsTool
@@ -25,7 +25,7 @@ type Page
     | ParkingPage Parking.Model
     | RegionPage Region.Model
     | BoulderSectorPage BoulderSector.Model
-    | BoulderDetailPage BoulderDetail.Model
+    | BoulderFormationPage BoulderFormation.Model
     | BoulderProblemPage BoulderProblem.Model
     | RouteSectorPage RouteSector.Model
     | RouteDetailPage RouteDetail.Model
@@ -48,7 +48,7 @@ type Msg
     | OnHomeMsg Home.Msg
     | OnRegionMsg Region.Msg
     | OnBoulderSectorMsg BoulderSector.Msg
-    | OnBoulderDetailMsg BoulderDetail.Msg
+    | OnBoulderFormationMsg BoulderFormation.Msg
     | OnBoulderProblemMsg BoulderProblem.Msg
     | OnRouteSectorMsg RouteSector.Msg
     | OnRouteDetailMsg RouteDetail.Msg
@@ -69,16 +69,16 @@ pageFromRoute r cfg =
             page HomePage OnHomeMsg (Home.entry cfg)
 
         Region id ->
-            page RegionPage OnRegionMsg (Region.entry id)
+            page RegionPage OnRegionMsg (Region.entry cfg id)
 
         BoulderSector req ->
-            page BoulderSectorPage OnBoulderSectorMsg (BoulderSector.entry req)
+            page BoulderSectorPage OnBoulderSectorMsg (BoulderSector.entry cfg req)
 
-        BoulderDetail req ->
-            page BoulderDetailPage OnBoulderDetailMsg (BoulderDetail.entry req)
+        BoulderFormation req ->
+            page BoulderFormationPage OnBoulderFormationMsg (BoulderFormation.entry cfg req)
 
         BoulderProblem req ->
-            page BoulderProblemPage OnBoulderProblemMsg (BoulderProblem.entry req)
+            page BoulderProblemPage OnBoulderProblemMsg (BoulderProblem.entry cfg req)
 
         RouteSector req ->
             page RouteSectorPage OnRouteSectorMsg (RouteSector.entry req)
@@ -121,8 +121,8 @@ view model =
         BoulderSectorPage m ->
             Html.map OnBoulderSectorMsg (BoulderSector.view model.cfg m)
 
-        BoulderDetailPage m ->
-            Html.map OnBoulderDetailMsg (BoulderDetail.view model.cfg m)
+        BoulderFormationPage m ->
+            Html.map OnBoulderFormationMsg (BoulderFormation.view model.cfg m)
 
         BoulderProblemPage m ->
             Html.map OnBoulderProblemMsg (BoulderProblem.view model.cfg m)
@@ -152,7 +152,7 @@ update msg_ m_ =
         cfg =
             m_.cfg
 
-        page m1 p m2 cmd =
+        page m1 m2 ( p, cmd ) =
             ( { m_ | page = m1 p }, Cmd.map m2 cmd )
     in
     case ( msg_, m_.page ) of
@@ -171,60 +171,31 @@ update msg_ m_ =
 
         -- Redirect to appropriate sub-model
         ( OnHomeMsg msg, HomePage m ) ->
-            let
-                ( new, cmd ) =
-                    Home.update msg m
-            in
-            page HomePage new OnHomeMsg cmd
+            page HomePage OnHomeMsg (Home.update msg m)
 
         ( OnRegionMsg msg, RegionPage m ) ->
-            let
-                ( new, cmd ) =
-                    Region.update msg cfg m
-            in
-            page RegionPage new OnRegionMsg cmd
+            page RegionPage OnRegionMsg ( Region.update msg m, Cmd.none )
 
         ( OnBoulderSectorMsg msg, BoulderSectorPage m ) ->
-            let
-                ( new, cmd ) =
-                    BoulderSector.update msg cfg m
-            in
-            page BoulderSectorPage new OnBoulderSectorMsg cmd
+            page BoulderSectorPage OnBoulderSectorMsg (BoulderSector.update msg cfg m)
 
-        ( OnBoulderDetailMsg msg, BoulderDetailPage m ) ->
-            let
-                ( new, cmd ) =
-                    BoulderDetail.update msg cfg m
-            in
-            page BoulderDetailPage new OnBoulderDetailMsg cmd
+        ( OnBoulderFormationMsg msg, BoulderFormationPage m ) ->
+            page BoulderFormationPage OnBoulderFormationMsg (BoulderFormation.update msg cfg m)
+
+        ( OnBoulderProblemMsg msg, BoulderProblemPage m ) ->
+            page BoulderProblemPage OnBoulderProblemMsg ( BoulderProblem.update msg m, Cmd.none )
 
         ( OnRouteSectorMsg msg, RouteSectorPage m ) ->
-            let
-                ( new, cmd ) =
-                    RouteSector.update msg cfg m
-            in
-            page RouteSectorPage new OnRouteSectorMsg cmd
+            page RouteSectorPage OnRouteSectorMsg (RouteSector.update msg cfg m)
 
         ( OnRouteDetailMsg msg, RouteDetailPage m ) ->
-            let
-                ( new, cmd ) =
-                    RouteDetail.update msg cfg m
-            in
-            page RouteDetailPage new OnRouteDetailMsg cmd
+            page RouteDetailPage OnRouteDetailMsg (RouteDetail.update msg cfg m)
 
         ( OnGpsToolMsg msg, GpsToolPage m ) ->
-            let
-                ( new, cmd ) =
-                    GpsTool.update msg m
-            in
-            page GpsToolPage new OnGpsToolMsg cmd
+            page GpsToolPage OnGpsToolMsg (GpsTool.update msg m)
 
         ( OnGradeToolMsg msg, GradeToolPage m ) ->
-            let
-                ( new, cmd ) =
-                    GradeTool.update msg m
-            in
-            page GradeToolPage new OnGradeToolMsg cmd
+            page GradeToolPage OnGradeToolMsg (GradeTool.update msg m)
 
         -- Internal state and other global tasks
         ( OnConfigMsg msg, _ ) ->

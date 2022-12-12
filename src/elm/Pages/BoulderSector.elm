@@ -1,11 +1,16 @@
-module Pages.BoulderSector exposing (Model, Msg, entry, update, view)
+module Pages.BoulderSector exposing (Model, Msg, entry, httpDataRequest, update, view)
 
+import Api
 import Config as Cfg
 import Data exposing (..)
-import Dict exposing (Dict)
+import Decoder
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Html.Lazy exposing (lazy)
+import Http
+import List.Extra
+import Markdown
 import Route
 import Table exposing (defaultCustomizations)
 import Types exposing (..)
@@ -19,12 +24,8 @@ import Ui.Tab as Tab exposing (Msg(..))
 
 type alias Model =
     { id : SectorId
-    , name : String
-    , description : String
-    , access : String
-    , boulderInfo : List BoulderInfo
-    , blockInfo : Dict Slug BlockInfo
-    , selectedBlock : String
+    , sector : Api.ApiResult Sector
+    , selectedFormation : Maybe ElemId
     , tab : Tab.Model
     , map : Map.Model
     , table : Table.State
@@ -33,37 +34,30 @@ type alias Model =
 
 
 type Msg
-    = OnTabMsg Tab.Msg
+    = OnDataReceived (Result Http.Error Sector)
+    | OnTabMsg Tab.Msg
     | OnMapMsg Map.Msg
     | OnHistogramMsg Histogram.Msg
     | OnTableUpdate Table.State
-    | OnBlockSelect String
+    | OnBlockSelect ElemId
 
 
-entry : SectorId -> ( Model, Cmd a )
-entry id =
+get : (Sector -> a) -> a -> Model -> a
+get attr default m =
+    Result.map attr m.sector |> Result.withDefault default
+
+
+entry : Cfg.Model -> SectorId -> ( Model, Cmd Msg )
+entry cfg id =
     ( { id = id
-      , name = "Bloco do fax"
-      , description = "Lorem Ipsum Est"
-      , boulderInfo =
-            [ { name = "Boulder Foo", slug = "foo", grade = "V2", block = "fax" }
-            , { name = "No Bar", slug = "bar", grade = "V5", block = "fax" }
-            , { name = "Blas", slug = "blas", grade = "V10", block = "fax" }
-            , { name = "Burp", slug = "burp", grade = "V10", block = "block-2" }
-            ]
-      , blockInfo =
-            Dict.fromList
-                [ ( "fax", { name = "Bloco do Fax", shortName = "Fax" } )
-                , ( "block-2", { name = "Bloco 2", shortName = "Bloco 2" } )
-                ]
-      , selectedBlock = "*"
-      , access = "De carro"
+      , sector = Err Nothing
+      , selectedFormation = Nothing
       , tab = Tab.init tabConfig
       , map = Map.init
-      , histogram = Histogram.init
       , table = Table.initialSort "Nome"
+      , histogram = Histogram.init
       }
-    , Cmd.none
+    , httpDataRequest OnDataReceived cfg id
     )
 
 
@@ -74,6 +68,12 @@ update msg _ m =
             ( model, Cmd.none )
     in
     case msg of
+        OnDataReceived (Ok data) ->
+            return { m | sector = Api.resultFromData data }
+
+        OnDataReceived (Err e) ->
+            return { m | sector = Api.resultFromError e }
+
         OnTabMsg msg_ ->
             return { m | tab = Tab.update msg_ m.tab }
 
@@ -87,14 +87,24 @@ update msg _ m =
             return { m | table = state }
 
         OnBlockSelect id ->
-            return { m | selectedBlock = id }
+            return { m | selectedFormation = Just id }
 
 
 view : Cfg.Model -> Model -> Html Msg
 view _ m =
+    let
+        ( regionId, _ ) =
+            splitSectorId m.id
+
+        ( countryId, _ ) =
+            splitRegionId regionId
+    in
     Ui.App.appShell <|
         Ui.container
-            [ Ui.breadcrumbs [ ( "br", "BR" ), ( "foo", "Cocalzinho" ) ]
+            [ Ui.breadcrumbs
+                [ ( Route.country countryId, String.toUpper countryId )
+                , ( Route.region regionId, get .regionName (regionSlug regionId) m )
+                ]
             , Ui.title "Setor Moco"
             , Ui.tags [ "Facil acesso", "Democratico" ]
             , Tab.view tabConfig m.tab m
@@ -103,62 +113,68 @@ view _ m =
 
 viewBoulders : Model -> Html Msg
 viewBoulders m =
-    let
-        blockItem ( id, { name } ) =
-            option [ value id ] [ text name ]
+    Ui.App.viewLoadingResult m.sector <|
+        \sector ->
+            let
+                blockItem { id, name } =
+                    option [ value (elemSlug id) ] [ text name ]
 
-        blockOptions =
-            option [ disabled True, selected True ] [ text "Selecione o bloco" ]
-                :: option [ value "*" ] [ text "Todos" ]
-                :: List.map blockItem (Dict.toList m.blockInfo)
+                blockOptions =
+                    option [ disabled True, selected True ] [ text "Selecione o bloco" ]
+                        :: option [ value "*" ] [ text "Todos" ]
+                        :: List.map blockItem sector.boulderFormations
 
-        blockLink =
-            Route.boulderDetail (elemId m.id m.selectedBlock)
-    in
-    div []
-        [ Html.map OnMapMsg (Map.view m.map)
-        , select [ onInput OnBlockSelect, class "select select-bordered w-full mb-4" ] blockOptions
-        , Ui.title m.name
-        , Ui.cardList a
-            Ui.Color.Primary
-            (List.map
-                (\{ name, slug, grade } ->
-                    ( name ++ " (" ++ grade ++ ")", [ href (Route.boulderDetail (elemId m.id slug)) ] )
-                )
-                (getBoulders m)
-            )
-        , a [ class "btn w-full btn-primary my-4", href blockLink ] [ text "Ir para bloco" ]
-        ]
+                blockLink =
+                    m.selectedFormation
+                        |> Maybe.map
+                            (\x ->
+                                a [ class "btn w-full btn-primary my-4", href (Route.boulderDetail x) ] [ text "Ir para bloco" ]
+                            )
+                        |> Maybe.withDefault (div [] [])
+            in
+            div []
+                [ Html.map OnMapMsg (Map.view m.map)
+                , select [ onInput (OnBlockSelect << elemId m.id), class "select select-bordered w-full mb-4" ] blockOptions
+                , Ui.title sector.name
+                , Ui.cardList a
+                    Ui.Color.Primary
+                    (List.map
+                        (\( { id }, { name, grade } ) ->
+                            ( name ++ " (" ++ grade ++ ")", [ href (Route.boulderDetail id) ] )
+                        )
+                        (getBoulderProblems m)
+                    )
+                , blockLink
+                ]
 
 
 viewInfo : Model -> Html Msg
 viewInfo m =
-    let
-        data =
-            [ ( "VB", 1 )
-            , ( "V0", 2 )
-            , ( "V1", 2 )
-            , ( "V3", 11 )
-            , ( "V4", 1 )
-            , ( "V5", 4 )
-            , ( "V6", 6 )
-            , ( "V7", 4 )
-            , ( "V8", 5 )
-            , ( "V10", 2 )
-            ]
-    in
-    Ui.sections
-        [ ( "Descrição do bloco", [ text m.description ] )
-        , ( "Distribuição de graus", [ Html.map OnHistogramMsg (Histogram.view m.histogram data) ] )
-        , ( "Lista de problemas", [ Table.view tableConfig m.table m.boulderInfo ] )
-        ]
+    Ui.App.viewLoadingResult m.sector <|
+        \sector ->
+            let
+                problems =
+                    getBoulderProblems m
+
+                histData =
+                    problems
+                        |> List.map (Tuple.second >> .grade)
+                        |> List.Extra.frequencies
+                        |> List.map (\( x, y ) -> ( x, toFloat y ))
+            in
+            Ui.sections
+                [ ( "Descrição do bloco", [ lazy (Markdown.toHtml []) sector.description ] )
+                , ( "Distribuição de graus", [ Html.map OnHistogramMsg (Histogram.view m.histogram histData) ] )
+                , ( "Lista de problemas", [ Table.view tableConfig m.table problems ] )
+                ]
 
 
 viewAccess : Model -> Html Msg
 viewAccess m =
-    div []
-        [ p [] [ text m.access ]
-        ]
+    Ui.App.viewLoadingResult m.sector <|
+        \sector ->
+            div []
+                [ p [] [ text sector.howToAccess ] ]
 
 
 tabConfig : Tab.Config Model Msg
@@ -171,28 +187,40 @@ tabConfig =
         ]
 
 
-tableConfig : Table.Config BoulderInfo Msg
+tableConfig : Table.Config ( BoulderFormation, BoulderProblem ) Msg
 tableConfig =
-    let
-        c =
-            defaultCustomizations
-    in
     Table.customConfig
-        { toId = .slug
+        { toId = Tuple.second >> .name
         , toMsg = OnTableUpdate
         , columns =
-            [ Table.stringColumn "Name" .name
-            , Table.stringColumn "Bloco" .block
-            , Table.stringColumn "Grau" .grade
+            [ Table.stringColumn "Name" (Tuple.second >> .name)
+            , Table.stringColumn "Bloco" (Tuple.first >> .name)
+            , Table.stringColumn "Grau" (Tuple.second >> .grade)
             ]
-        , customizations = { c | tableAttrs = [ class "table w-full" ] }
+        , customizations = { defaultCustomizations | tableAttrs = [ class "table w-full" ] }
         }
 
 
-getBoulders : Model -> List BoulderInfo
-getBoulders m =
-    if m.selectedBlock == "*" then
-        m.boulderInfo
+getBoulderProblems : Model -> List ( BoulderFormation, BoulderProblem )
+getBoulderProblems m =
+    case m.selectedFormation of
+        Nothing ->
+            Result.map .boulderFormations m.sector
+                |> Result.withDefault []
+                |> List.map (\x -> List.map (Tuple.pair x) x.problems)
+                |> List.concat
 
-    else
-        List.filter (\info -> info.block == m.selectedBlock) m.boulderInfo
+        Just id ->
+            Result.map .boulderFormations m.sector
+                |> Result.withDefault []
+                |> List.filter (.id >> (==) id)
+                |> List.map (\x -> List.map (Tuple.pair x) x.problems)
+                |> List.concat
+
+
+httpDataRequest : (Result Http.Error Sector -> msg) -> Cfg.Model -> SectorId -> Cmd msg
+httpDataRequest msg cfg id =
+    Http.get
+        { url = Api.boulderSector cfg id
+        , expect = Http.expectJson msg Decoder.sector
+        }

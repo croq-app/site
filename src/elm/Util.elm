@@ -1,8 +1,11 @@
 module Util exposing (..)
 
+import Http
+
 -- import Debug
--- dbg x y = Debug.log (Debug.toString x) y
--- dbg1 x = Debug.log (Debug.toString x) x
+-- dbg = Debug.log
+-- dbg1 x =
+--     Debug.log (Debug.toString x) x
 
 
 dbg : a -> b -> b

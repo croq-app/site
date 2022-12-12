@@ -1,4 +1,4 @@
-module Route exposing (Route(..), boulderDetail, boulderSector, home, parking, parseUrl, region, routeDetail, routeSector, toHref, boulderProblem)
+module Route exposing (Route(..), boulderDetail, boulderProblem, boulderSector, country, home, parking, parseUrl, region, routeDetail, routeSector, toHref)
 
 import Types exposing (..)
 import Url exposing (Url)
@@ -8,9 +8,9 @@ import Url.Parser as Parser exposing (..)
 type Route
     = Home
     | Error RegionId
-    | Region Id
+    | Region RegionId
     | BoulderSector SectorId
-    | BoulderDetail ElemId
+    | BoulderFormation ElemId
     | RouteSector SectorId
     | RouteDetail ElemId
     | BoulderProblem ProblemId
@@ -50,7 +50,7 @@ matchers =
         --- URLS associated with specific regions
         , rmap Region regionId
         , smap BoulderSector (regionId </> s "b" </> s "sectors" </> id)
-        , emap BoulderDetail (regionId </> s "b" </> s "sectors" </> id </> id)
+        , emap BoulderFormation (regionId </> s "b" </> s "sectors" </> id </> id)
         , pmap BoulderProblem (regionId </> s "b" </> s "sectors" </> id </> id </> id)
         , smap RouteSector (regionId </> s "r" </> s "sectors" </> id)
         , emap RouteDetail (regionId </> s "r" </> s "sectors" </> id </> id)
@@ -84,7 +84,7 @@ toHref route =
         BoulderSector ( rid, id ) ->
             "/" ++ reg rid ++ "/b/sectors/" ++ id ++ "/"
 
-        BoulderDetail ( ( rid, sec ), id ) ->
+        BoulderFormation ( ( rid, sec ), id ) ->
             "/" ++ reg rid ++ "/b/sectors/" ++ sec ++ "/" ++ id ++ "/"
 
         BoulderProblem ( ( ( rid, sec ), elem ), id ) ->
@@ -114,7 +114,12 @@ home =
     toHref Home
 
 
-region : Id -> String
+country : Id -> String
+country id =
+    "/" ++ id
+
+
+region : RegionId -> String
 region id =
     toHref (Region id)
 
@@ -126,7 +131,7 @@ boulderSector id =
 
 boulderDetail : ElemId -> String
 boulderDetail id =
-    toHref (BoulderDetail id)
+    toHref (BoulderFormation id)
 
 
 boulderProblem : ProblemId -> String

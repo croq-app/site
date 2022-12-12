@@ -18,45 +18,103 @@ type alias Url =
 type alias Name =
     String
 
+type alias Id =
+    String
 
 type alias RegionId =
     String
 
 
 type alias SectorId =
-    ( RegionId, Id )
+    ( RegionId, RegionId )
 
 
 type alias ElemId =
-    ( SectorId, Id )
+    ( SectorId, RegionId )
 
 
 type alias ProblemId =
-    ( ElemId, Id )
+    ( ElemId, RegionId )
 
 
 type alias RefPath =
     List String
 
 
-type alias Id =
-    String
 
 
 type alias Grade =
     String
 
 
-sectorId : RegionId -> Id -> SectorId
+type alias GeoLoc =
+    String
+
+
+type alias LoadingError =
+    String
+
+
+regionId : RegionId -> RegionId -> RegionId
+regionId a b =
+    a ++ "." ++ b
+
+
+splitRegionId : RegionId -> ( RegionId, RegionId )
+splitRegionId id =
+    case String.split "." id of
+        [ a, b ] ->
+            ( a, b )
+
+        _ ->
+            ( "root", id )
+
+
+regionSlug : RegionId -> RegionId
+regionSlug =
+    splitRegionId >> Tuple.second
+
+
+sectorId : RegionId -> RegionId -> SectorId
 sectorId a b =
     ( a, b )
 
 
-elemId : SectorId -> Id -> ElemId
+splitSectorId : SectorId -> ( RegionId, RegionId )
+splitSectorId =
+    identity
+
+
+sectorSlug : SectorId -> RegionId
+sectorSlug =
+    splitSectorId >> Tuple.second
+
+
+elemId : SectorId -> RegionId -> ElemId
 elemId a b =
     ( a, b )
 
 
-problemId : ElemId -> Id -> ProblemId
+splitElemId : ElemId -> ( SectorId, RegionId )
+splitElemId =
+    identity
+
+
+elemSlug : ElemId -> RegionId
+elemSlug =
+    splitElemId >> Tuple.second
+
+
+problemId : ElemId -> RegionId -> ProblemId
 problemId a b =
     ( a, b )
+
+
+splitProblemId : ProblemId -> ( ElemId, RegionId )
+splitProblemId =
+    identity
+
+
+problemSlug : ProblemId -> RegionId
+problemSlug =
+    splitProblemId >> Tuple.second

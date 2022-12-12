@@ -72,8 +72,8 @@ viewTab cfg select idx name =
                 "tab flex-1 tab-bordered"
     in
     Html.map cfg.message <|
-        a
-            [ class tabClass, Ev.onClick (OnSelect idx), href "#" ]
+        button
+            [ class tabClass, Ev.onClick (OnSelect idx) ]
             [ text name ]
 
 

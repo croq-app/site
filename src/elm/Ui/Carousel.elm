@@ -15,6 +15,10 @@ type alias Config data msg =
     }
 
 
+type alias State =
+    { selected : Int }
+
+
 view : Config data msg -> List data -> Html msg
 view cfg data =
     let

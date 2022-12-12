@@ -2,11 +2,12 @@ module Pages.Region exposing (Model, Msg, entry, update, view)
 
 import Api
 import Config as Cfg
+import Data exposing (Region)
+import Decoder
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http
-import Json.Decode as D
 import List.Extra
 import Route
 import Types exposing (..)
@@ -17,36 +18,19 @@ import Ui.SectorMap as Map
 import Ui.Tab as Tab
 
 
-type alias Sector =
-    ( String, String )
-
-
 type alias Model =
-    { id : String
+    { id : RegionId
+    , region : Api.ApiResult Region
     , tab : Tab.Model
     , map : Map.Model
-    , data : Maybe Data
-    , selectedSector : Int -- (-1) if no sector/attraction is selected
+    , selectedSector : Int
     , selectedAttraction : Int
     , showAttraction : Bool
     }
 
 
-type alias Data =
-    { sectors : List Sector
-    , attractions : List Attraction
-    }
-
-
-type alias Attraction =
-    { title : String
-    , description : String
-    }
-
-
 type Msg
-    = OnRequestData
-    | OnDataReceived (Result Http.Error Data)
+    = OnDataReceived (Result Http.Error Region)
     | OnChangeSelectedSector Int
     | OnChangeSelectedAttraction Int
     | OnShowAttraction Int
@@ -54,12 +38,12 @@ type Msg
     | OnMapMsg Map.Msg
 
 
-entry : String -> ( Model, Cmd Msg )
-entry url =
+entry : Cfg.Model -> RegionId -> ( Model, Cmd Msg )
+entry cfg id =
     let
         m =
-            { id = url
-            , data = Nothing
+            { id = id
+            , region = Err Nothing
             , tab = Tab.init tabConfig
             , map = Map.init
             , selectedSector = -1
@@ -67,51 +51,44 @@ entry url =
             , showAttraction = False
             }
     in
-    ( m, httpDataRequest url )
+    ( m, httpDataRequest cfg id )
 
 
-update : Msg -> Cfg.Model -> Model -> ( Model, Cmd Msg )
-update msg cfg m =
-    let
-        return model =
-            ( model, Cmd.none )
-    in
+update : Msg -> Model -> Model
+update msg m =
     case msg of
-        OnRequestData ->
-            ( m, httpDataRequest m.id )
-
         OnDataReceived (Ok data) ->
-            return { m | data = Just data }
+            { m | region = Api.resultFromData data }
 
         OnDataReceived (Err e) ->
-            ( m, Cfg.pushErrorUrl e cfg )
+            { m | region = Api.resultFromError e }
 
         OnTabMsg msg_ ->
-            return { m | tab = Tab.update msg_ m.tab }
+            { m | tab = Tab.update msg_ m.tab }
 
         OnMapMsg msg_ ->
-            return { m | map = Map.update msg_ m.map }
+            { m | map = Map.update msg_ m.map }
 
         OnChangeSelectedSector i ->
-            return { m | selectedSector = i }
+            { m | selectedSector = i }
 
         OnChangeSelectedAttraction i ->
-            return { m | selectedAttraction = i }
+            { m | selectedAttraction = i }
 
         OnShowAttraction i ->
-            return { m | showAttraction = True, selectedAttraction = i }
-
-
-
---- VIEW ----------------------------------------------------------------------
+            { m | showAttraction = i >= 0, selectedAttraction = i }
 
 
 view : Cfg.Model -> Model -> Html Msg
 view _ m =
+    let
+        ( countryId, _ ) =
+            splitRegionId m.id
+    in
     Ui.App.appShell <|
         div []
             [ Ui.container
-                [ Ui.breadcrumbs [ ( "/br", "BR" ) ]
+                [ Ui.breadcrumbs [ ( "/" ++ countryId, String.toUpper countryId ) ]
                 , Ui.title "Mapa dos setores"
                 ]
             , div [ class "max-w-lg mx-auto" ] [ Map.view m.map ]
@@ -121,25 +98,27 @@ view _ m =
 
 viewSectors : Model -> Html Msg
 viewSectors m =
-    viewLoading m.data <|
+    let
+        card sector =
+            let
+                url : String
+                url =
+                    Route.boulderSector sector.id
+            in
+            ( sector.name, [ href url ] )
+    in
+    Ui.App.viewLoadingResult m.region <|
         \{ sectors } ->
             if sectors == [] then
                 div [ class "card m-4 p-4 bg-focus" ] [ text "Nenhum setor cadastrado!" ]
 
             else
-                Ui.cardList a
-                    Ui.Color.Primary
-                    (List.map
-                        (\( a, id_ ) ->
-                            ( a, [ href (Route.boulderSector (sectorId m.id id_)) ] )
-                        )
-                        sectors
-                    )
+                Ui.cardList a Ui.Color.Primary (List.map card sectors)
 
 
 viewAttractions : Model -> Html Msg
 viewAttractions m =
-    viewLoading m.data <|
+    Ui.App.viewLoadingResult m.region <|
         \{ attractions } ->
             if attractions == [] then
                 div [ class "card m-4 p-4 bg-error" ] [ text "Nenhuma atração cadastrada!" ]
@@ -158,19 +137,9 @@ viewAttractions m =
                 Ui.cardList button
                     Ui.Color.Secondary
                     (List.indexedMap
-                        (\i a -> ( a.title, [ onClick (OnShowAttraction i) ] ))
+                        (\i a -> ( a.name, [ onClick (OnShowAttraction i) ] ))
                         attractions
                     )
-
-
-viewLoading : Maybe a -> (a -> Html msg) -> Html msg
-viewLoading data render =
-    case data of
-        Just content ->
-            render content
-
-        Nothing ->
-            div [ class "card m-4 p-4 bg-focus" ] [ text "Carregando..." ]
 
 
 tabConfig : Tab.Config Model Msg
@@ -178,40 +147,9 @@ tabConfig =
     Tab.config OnTabMsg [ ( "Setores", viewSectors ), ( "Atrações", viewAttractions ) ]
 
 
-
---- JSON DECODER --------------------------------------------------------------
-
-
-dataDecoder : D.Decoder Data
-dataDecoder =
-    let
-        pair =
-            D.list D.string
-                |> D.andThen toPair
-
-        toPair lst =
-            case lst of
-                [ a, b ] ->
-                    D.succeed ( a, b )
-
-                _ ->
-                    D.fail "list must have exactly 2 elements"
-    in
-    D.map2 Data
-        (D.field "sectors" (D.list pair))
-        (D.field "attractions" (D.list attractionDecoder))
-
-
-attractionDecoder : D.Decoder Attraction
-attractionDecoder =
-    D.map2 Attraction
-        (D.field "title" D.string)
-        (D.field "description" D.string)
-
-
-httpDataRequest : RegionId -> Cmd Msg
-httpDataRequest id =
+httpDataRequest : Cfg.Model -> RegionId -> Cmd Msg
+httpDataRequest cfg id =
     Http.get
-        { url = Api.sectorList id
-        , expect = Http.expectJson OnDataReceived dataDecoder
+        { url = Api.region cfg id
+        , expect = Http.expectJson OnDataReceived Decoder.region
         }

@@ -122,3 +122,7 @@ sections data =
     in
     dl [] <|
         List.concat (List.map item data)
+
+
+shortPlaceholder = "░░░░░ ░ ░░░░"
+longPlaceholder = "░░░░░ ░ ░░░░ ░░░░ ░░░ ░░ ░░░░░ ░ ░░░░ ░ ░░░░ ░░░ ░░░ ░░░░ ░░░ ░░ ░░░░░ ░ ░░░░ ░ ░░░░"
