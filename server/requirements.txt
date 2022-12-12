@@ -1,0 +1,6 @@
+django
+django-ninja
+django-autoslug
+django-model-utils
+django-pagedown
+django-cors-headers

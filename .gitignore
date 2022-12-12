@@ -6,3 +6,6 @@ repl-temp-*
 .sass-cache
 node_modules/
 dist/
+**/__pycache__/**
+**/migrations/**
+server/env

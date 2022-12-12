@@ -1,6 +1,9 @@
 from invoke import task
 
 
+def manage(ctx, cmd, *args, **kwargs):
+    return ctx.run(f"source server/env/bin/activate && python server/manage.py {cmd}", *args, **kwargs)
+
 @task
 def build(ctx, compress=False):
     """
@@ -23,15 +26,35 @@ def build(ctx, compress=False):
 
 
 @task
-def dev(ctx):
+def dev(ctx, frontend=False, backend=False):
     """
     Starts development server
     """
-    ctx.run("npx dev", pty=True)
+    if frontend:
+        ctx.run("npx vite", pty=True)
+    elif backend:
+        manage(ctx, "runserver", pty=True)
+    else:
+        vite = ctx.run("npx vite --port 8000", asynchronous=True)
+        manage(ctx, "runserver 8001", pty=True)
+        # ctx.run("devd /api/=http://localhost:7999 http://localhost:7998 -X")
+        # django.kill()
+        vite.join()
 
+
+@task
+def db(ctx, app=None, migrate=False):
+    """
+    Run database migrations.
+    """
+    suffix = "" if app is None else " " + app
+    manage(ctx, "makemigrations" + suffix, pty=True)
+    if migrate:
+        manage(ctx, "migrate" + suffix, pty=True)
+        
 
 @task(build)
-def prod(ctx):
+def preview(ctx):
     """
     Makes a build and serves a production-like version of the site.
 
@@ -41,13 +64,15 @@ def prod(ctx):
 
 
 @task
-def publish(ctx, message=None):
+def publish(ctx, message=None, skip_checks=False):
     """
     Publish site in github.
     """
     ctx.run("black .")
     ctx.run("elm-format src/ --yes")
-    build(ctx, compress=True)
+    if not skip_checks:
+        check(ctx)
+        build(ctx, compress=True)
 
     ctx.run("git add .")
     ctx.run("git status", pty=True)
